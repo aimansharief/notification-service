@@ -1,6 +1,7 @@
 package org.sunbird.notification.actor;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.sunbird.BaseActor;
@@ -19,7 +20,6 @@ import org.sunbird.pojo.NotificationV2Request;
 import org.sunbird.request.LoggerUtil;
 import org.sunbird.telemetry.TelemetryEnvKey;
 import org.sunbird.telemetry.util.TelemetryUtil;
-import scala.collection.JavaConverters;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -44,14 +44,11 @@ public class CreateNotificationActor extends BaseActor {
         try {
             Response response = new Response();
             ObjectMapper mapper = new ObjectMapper();
-            // Convert Scala collection to Java List to avoid ClassCastException
             Object notificationsObject = request.getRequest().get(JsonKey.NOTIFICATIONS);
-            List<Map<String, Object>> notifications;
-            if (notificationsObject instanceof scala.collection.Seq) {
-                notifications = new ArrayList<>(JavaConverters.asJavaCollectionConverter((scala.collection.Seq<Map<String, Object>>) notificationsObject).asJavaCollection());
-            } else {
-                notifications = (List<Map<String, Object>>) notificationsObject;
-            }
+            List<Map<String, Object>> notifications = mapper.convertValue(
+                notificationsObject, 
+                new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+            );
 
             String deliveryMode = request.getManagerName();
             if (StringUtils.isNotBlank(deliveryMode) && "sync".equalsIgnoreCase(deliveryMode)) {
